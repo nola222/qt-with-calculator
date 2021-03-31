@@ -25,6 +25,8 @@ from PyQt5.QtWidgets import QWidget
 __version__ = '0.1'
 __author__ = 'nola'
 
+ERROR_MSG = 'ERROR'
+
 
 class CalculatorGUI(QMainWindow):
     """View
@@ -129,14 +131,16 @@ class CalculatorGUI(QMainWindow):
 class CalculatorCtl(object):
     """控制器
     """
-    def __init__(self, view):
+    def __init__(self, view, model):
         """init
 
         Args:
             view(CalculatorGUI): CalculatorGUI 实例
+            model(evaluate_expression): model
         """
         self._view = view
         self._connect_signal()
+        self._evaluate = model
 
     def _build_expression(self, sub_exp):
         """构造数学运算表达式 更新输入显示
@@ -159,6 +163,32 @@ class CalculatorCtl(object):
                 btn.clicked.connect(partial(self._build_expression, btn_text))
 
         self._view.buttons['C'].clicked.connect(self._view.clear_display)
+        self._view.buttons['='].clicked.connect(self._calculate_result)
+        self._view.display.returnPressed.connect(self._calculate_result)  # hits Enter
+
+    def _calculate_result(self):
+        """计算结果
+        """
+        result = self._evaluate(expression=self._view.get_display_text())
+        self._view.set_display_text(result)
+
+
+def evaluate_expression(expression):
+    """计算数学运算表达式
+
+    Args:
+        expression(str): 表达式
+
+    Returns:
+        result(int,float): 运算结果
+
+    """
+    try:
+        result = str(eval(expression, {}, {}))
+    except (SyntaxError, TypeError):
+        result = ERROR_MSG
+
+    return result
 
 
 def main():
@@ -170,7 +200,8 @@ def main():
     view = CalculatorGUI()
     view.show()
     # 创建model和controller
-    CalculatorCtl(view=view)
+    model = evaluate_expression
+    CalculatorCtl(view=view, model=model)
     # loop
     sys.exit(cal.exec_())
 
